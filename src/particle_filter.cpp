@@ -9,22 +9,26 @@
 #include <algorithm>
 #include <iostream>
 #include <numeric>
-#include <math.h> 
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <iterator>
 
 #include "particle_filter.h"
+#include "helper_functions.h"
 
 using namespace std;
 
+// declare a random engine to be used across multiple and various method calls
+static default_random_engine gen;
+
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
-	// TODO: Set the number of particles. Initialize all particles to first position (based on estimates of 
-	//   x, y, theta and their uncertainties from GPS) and all weights to 1. 
-	// Add random Gaussian noise to each particle.
-	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
-	default_random_engine gen;
+  // TODO: Set the number of particles. Initialize all particles to first position (based on estimates of 
+  //   x, y, theta and their uncertainties from GPS) and all weights to 1. 
+  // Add random Gaussian noise to each particle.
+  // NOTE: Consult particle_filter.h for more information about this method (and others in this file).
+
+  	default_random_engine gen;
 	num_particles = 100;
 	normal_distribution<double> dist_x(x, std[0]);
 	normal_distribution<double> dist_y(y, std[1]);
@@ -42,13 +46,12 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
-	// TODO: Add measurements to each particle and add random Gaussian noise.
-	// NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
-	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
-	//  http://www.cplusplus.com/reference/random/default_random_engine/
+  // TODO: Add measurements to each particle and add random Gaussian noise.
+  // NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
+  //  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
+  //  http://www.cplusplus.com/reference/random/default_random_engine/
 
-
-	default_random_engine gen;
+ default_random_engine gen;
 	normal_distribution<double> dist_x(0, std_pos[0]);
 	normal_distribution<double> dist_y(0, std_pos[1]);
 	normal_distribution<double> dist_theta(0, std_pos[2]);
@@ -75,15 +78,14 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	particles[i].theta += dist_theta(gen);
 
 	}
-
 }
 
 void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
-	// TODO: Find the predicted measurement that is closest to each observed measurement and assign the 
-	//   observed measurement to this particular landmark.
-	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
-	//   implement this method and use it as a helper during the updateWeights phase.
-	
+  // TODO: Find the predicted measurement that is closest to each observed measurement and assign the 
+  //   observed measurement to this particular landmark.
+  // NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
+  //   implement this method and use it as a helper during the updateWeights phase.
+
 	for (unsigned int i = 0; i < observations.size(); i++) {  
 		LandmarkObs obs = observations[i];
 		double minimum = numeric_limits<double>::max();
@@ -100,8 +102,6 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 		observations[i].id = map_id;
 	}
 }
-
-
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
 		const std::vector<LandmarkObs> &observations, const Map &map_landmarks) {
@@ -162,19 +162,33 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 }
 
 void ParticleFilter::resample() {
-	// TODO: Resample particles with replacement with probability proportional to their weight. 
-	// NOTE: You may find std::discrete_distribution helpful here.
-	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+  // TODO: Resample particles with replacement with probability proportional to their weight. 
+  // NOTE: You may find std::discrete_distribution helpful here.
+  //   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+  
+	vector<Particle> new_particles;
+	vector<double> weights;
+	for (int i = 0; i < num_particles; i++) {
+		weights.push_back(particles[i].weight);
+	}
 
-	vector<Particle> new_particles (num_particles);	
-	default_random_engine gen;
-	for (int i = 0; i < num_particles; ++i) {
-		discrete_distribution<int> index(weights.begin(), weights.end());
-		new_particles[i] = particles[index(gen)];
+	uniform_int_distribution<int> uniintdist(0, num_particles-1);
+	auto index = uniintdist(gen);
+	double max_weight = *max_element(weights.begin(), weights.end());
+	uniform_real_distribution<double> unirealdist(0.0, max_weight);
+	double beta = 0.0;
+	for (int i = 0; i < num_particles; i++) {
+		beta += unirealdist(gen) * 2.0;
+		while (beta > weights[index]) {
+			beta -= weights[index];
+			index = (index + 1) % num_particles;
+		}
+	new_particles.push_back(particles[index]);
 	}
 	particles = new_particles;
-
 }
+
+
 
 Particle ParticleFilter::SetAssociations(Particle& particle, const std::vector<int>& associations, 
                                      const std::vector<double>& sense_x, const std::vector<double>& sense_y)
@@ -215,4 +229,4 @@ string ParticleFilter::getSenseY(Particle best)
     string s = ss.str();
     s = s.substr(0, s.length()-1);  // get rid of the trailing space
     return s;
-}
+}  
