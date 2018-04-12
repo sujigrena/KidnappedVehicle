@@ -140,12 +140,12 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 				if (predictions[k].id == associated_prediction) {
 					pr_x = predictions[k].x;
 					pr_y = predictions[k].y;
+				}
 			}
-		}
-		double s_x = std_landmark[0];
-		double s_y = std_landmark[1];
-		double obs_weight = ( 1/(2*M_PI*s_x*s_y)) * exp( -( pow(pr_x-o_x,2)/(2*pow(s_x, 2)) + (pow(pr_y-o_y,2)/(2*pow(s_y, 2))) ) );
-		particles[i].weight *= obs_weight;
+			double s_x = std_landmark[0];
+			double s_y = std_landmark[1];
+			double obs_weight = ( 1/(2*M_PI*s_x*s_y)) * exp( -( pow(pr_x-o_x,2)/(2*pow(s_x, 2)) + (pow(pr_y-o_y,2)/(2*pow(s_y, 2))) ) );
+			particles[i].weight *= obs_weight;
 		}
 	}
 }
